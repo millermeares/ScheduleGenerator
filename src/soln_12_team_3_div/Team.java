@@ -9,11 +9,15 @@ public class Team {
 	public List<Team> otherOpp;
 	public int divNum;
 	public Team[] sched;
+	public int num_weeks;
 	public Team(String name, int divNum) {
 		this.name = name;
 		this.divNum = divNum;
 		divOpp = new ArrayList<Team>();
 		otherOpp = new ArrayList<Team>();
-		sched = new Team[13];
+	}
+	public void setWeeks(int num_weeks) {
+		this.num_weeks = num_weeks;
+		sched = new Team[num_weeks];
 	}
 }

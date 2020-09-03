@@ -9,49 +9,82 @@ public class Schedule {
 	public Week[] weeks;
 	public Team[] teams;
 	public int num_weeks;
-	public int div_len;
+	public int div_sch_len;
+	public int num_div;
+	public int teams_per_div;
+	public List<Integer> divisions;
 	public Schedule(Team[] teams, int num_weeks) {
 		this.num_weeks = num_weeks;
 		this.weeks = new Week[num_weeks];
 		this.teams = teams;
 		// this is where i add randomization.
-
-		List<Team> div1 = new ArrayList<Team>();
-		List<Team> div2 = new ArrayList<Team>();
-		List<Team> div3 = new ArrayList<Team>();
+		divisions = new ArrayList<Integer>();
 		for(int i = 0; i < teams.length; i++) {
-			if(teams[i].divNum == 1) {
-				div1.add(teams[i]);
-			} else if (teams[i].divNum ==2) {
-				div2.add(teams[i]);
-			} else {
-				div3.add(teams[i]);
+			teams[i].setWeeks(num_weeks);
+			if(!divisions.contains(teams[i].divNum)) {
+				divisions.add(teams[i].divNum);
 			}
 		}
-		Collections.shuffle(div1);
-		Collections.shuffle(div2);
-		Collections.shuffle(div3);
-		List<List<Team>> overall_list = new ArrayList<List<Team>>();
-		overall_list.add(div1);
-		overall_list.add(div2);
-		overall_list.add(div3);
-		Collections.shuffle(overall_list);
+		num_div = divisions.size();
+		teams_per_div = teams.length / num_div;
+		
+		// checks for viability.
+		if(teams.length % 2 != 0) {
+			throw new IllegalArgumentException("Must have even number of teams.");
+		}
+		if(teams.length % num_div != 0) {
+			throw new IllegalArgumentException("Must be an even number of teams in each division.");
+		}
+		if((teams_per_div-1) * 2 > num_weeks) {
+			throw new IllegalArgumentException("Must be able to play each in-division team twice.");
+		}
+		if((teams.length-1) * 2 < num_weeks) {
+			throw new IllegalArgumentException("Can't play any team more than twice.");
+		}
+		
+		
+		// list of lists of teams in division.
+		
+		List<List<Team>> teams_by_div = new ArrayList<List<Team>>();
+		for(int i = 0; i < divisions.size(); i++) {
+			teams_by_div.add(new ArrayList<Team>());
+		}
+		for(int i = 0; i < teams.length; i++) {
+			// based on what index they are in divisions, add them to a teams_by_div list of lists.
+			for(int j = 0; j < divisions.size(); j++) {
+				if(divisions.get(j) == teams[i].divNum) {
+					if(teams_by_div.get(j) == null) {
+						teams_by_div.set(j, new ArrayList<Team>());
+					}
+					teams_by_div.get(j).add(teams[i]);
+					break;
+				}
+			}
+		}
+		for(int i = 0; i < teams_by_div.size(); i++) {
+			Collections.shuffle(teams_by_div.get(i));
+		}
+		
+		
+		Collections.shuffle(teams_by_div);
+		
+		
 		
 		List<Team> shuffled_teams = new ArrayList<Team>();
 		
-		for(int i = 0; i < overall_list.size(); i++) {
-			for(int j = 0; j < overall_list.get(i).size(); j++) {
-				shuffled_teams.add(overall_list.get(i).get(j));
+		for(int i = 0; i < teams_by_div.size(); i++) {
+			for(int j = 0; j < teams_by_div.get(i).size(); j++) {
+				shuffled_teams.add(teams_by_div.get(i).get(j));
 			}
 		}
 		shuffled_teams.toArray(teams);
 		
-		// reassign division numbers.
+		// reassign division numbers. DELETE THIS ONCE THAT'S IMPLEMENTED
 		for(int i = 0; i < teams.length; i++) {
 			teams[i].divNum = (i / 4) + 1;
 		}
 			
-		// get in division opponents. 
+		// get in division opponents. this should work fine. 
 		for(int i = 0; i < teams.length; i++) {
 			for(int j = 0; j < teams.length; j++) {
 				if(i ==j ) {
@@ -66,17 +99,19 @@ public class Schedule {
 			}
 		}
 		
-		div_len = teams[0].divOpp.size();
+		div_sch_len = teams[0].divOpp.size();
 	}
 	public void generateTeams() {
-		// keep a counter for each division. can only get to 2 for each divison. 
+		// keep a counter for each division. can only get to 2 for each division. 
+		// this is the hard part. only can get ? from each division. Why, how.. etc.
+		// then, how to keep track of how many assigned per division.
 		int one_to_two = 0;
 		int one_to_three = 0;
 		int two_to_three = 0;
 		
 		for(int i = 0; i < teams.length; i++) {
 			for(int j = 0; j < teams.length; j++) {
-				if(teams[j].otherOpp.size() == num_weeks - div_len || teams[i].otherOpp.size() == num_weeks - div_len) {
+				if(teams[j].otherOpp.size() == num_weeks - div_sch_len || teams[i].otherOpp.size() == num_weeks - div_sch_len) {
 					continue;
 				}
 				if(teams[i].divNum == teams[j].divNum) {
@@ -110,7 +145,7 @@ public class Schedule {
 	
 	// both of these will use backtracking.
 	public static boolean scheduleInDivison(Schedule schedule) {
-		int div_len = schedule.div_len;
+		int div_len = schedule.div_sch_len;
 		Team[] teams = schedule.teams;
 		
 		// schedule in division weeks.
@@ -173,7 +208,7 @@ public class Schedule {
 		return true;
 	}
 	public static boolean scheduleOutDivison(Schedule schedule) {
-		int div_len = schedule.div_len;
+		int div_len = schedule.div_sch_len;
 		Team[] teams = schedule.teams;
 		
 		// schedule in division weeks.
@@ -270,6 +305,37 @@ public class Schedule {
 		list_weeks.toArray(weeks);
 		
 		return weeks;
+	}
+	public void printByTeam() {
+		for(int j = 0; j < teams.length; j++) {
+			System.out.println(teams[j].name);
+			System.out.println();
+			for(int i = 0; i < num_weeks; i++) {
+				System.out.println(teams[j].sched[i].name);
+			}
+			System.out.println();
+			System.out.println();
+		}
+	}
+	public void printByWeek() {
+		if(weeks == null) {
+			throw new RuntimeException();
+		}
+		for(int i = 0; i < weeks.length; i++) {
+			if(weeks[i] == null) {
+				throw new RuntimeException();
+			}
+		}
+		for(int i = 0; i < num_weeks; i++) {
+			System.out.println("Week: " + (i+1));
+			System.out.println();
+			for(int j = 0; j < weeks[i].games.length; j++) {
+				Game x = weeks[i].games[j];
+				System.out.println(x.team1.name + " plays vs " + x.team2.name);
+			}
+			System.out.println();
+			System.out.println();
+		}
 	}
 }
 

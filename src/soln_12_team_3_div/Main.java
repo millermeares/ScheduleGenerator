@@ -30,30 +30,7 @@ public class Main {
 		Schedule.scheduleOutDivison(schedule);
 		schedule.constructSchedule();
 		
-		/*
-		 * print opponent list out of order for each team.
-		for(int j = 0; j < schedule.teams.length; j++) {
-			System.out.println(schedule.teams[j].name);
-			System.out.println();
-			for(int i = 0; i < schedule.num_weeks; i++) {
-				System.out.println(schedule.teams[j].sched[i].name);
-			}
-			System.out.println();
-			System.out.println();
-		}
-		*/
 		
-		
-		for(int i = 0; i < schedule.num_weeks; i++) {
-			System.out.println("Week: " + (i+1));
-			System.out.println();
-			for(int j = 0; j < schedule.weeks[i].games.length; j++) {
-				Game x = schedule.weeks[i].games[j];
-				System.out.println(x.team1.name + " plays vs " + x.team2.name);
-			}
-			System.out.println();
-			System.out.println();
-		}
 		
 		
 
