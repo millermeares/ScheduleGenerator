@@ -1,4 +1,4 @@
-package soln_12_team_3_div;
+package seasonScheduler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,10 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class ScheduleDivisions {
-	public Week[] weeks;
-	public Team[] teams;
-	public int num_weeks;
+public class ScheduleDivisions extends Schedule {
 	public int num_div;
 	public int teams_per_div;
 	public List<String> divisions;
@@ -28,14 +25,12 @@ public class ScheduleDivisions {
 			if (names[i] == null || division_arr[i] == null) {
 				throw new IllegalArgumentException("can't have a null team or division name");
 			}
-			teams[i] = new Team(names[i], division_arr[i]);
+			teams[i] = new Team(names[i], division_arr[i], num_weeks);
 		}
 		this.num_weeks = num_weeks;
-		this.weeks = new Week[num_weeks];
-		// this is where i add randomization.
+
 		divisions = new ArrayList<String>();
 		for (int i = 0; i < teams.length; i++) {
-			teams[i].setWeeks(num_weeks);
 			if (!divisions.contains(teams[i].divNum)) {
 				divisions.add(teams[i].divNum);
 			}
@@ -71,95 +66,56 @@ public class ScheduleDivisions {
 				}
 			}
 		}
-
 		
 		for (int i = 0; i < teams.length; i++) {
 			if (teams[i].divOpp.size() != teams[0].divOpp.size()) {
 				throw new IllegalArgumentException("must have same amount of teams in each division");
 			}
 		}
-		List<Team> teams_list = new ArrayList<Team>();
+		
+		// this is where i do randomization. this method is necessary because backtrack search does better when the division teams are next to each other.
+		List<List<Team>> teams_by_div = new ArrayList<List<Team>>();
+		for (int i = 0; i < divisions.size(); i++) {
+			teams_by_div.add(new ArrayList<Team>());
+		}
+		
 		for (int i = 0; i < teams.length; i++) {
-			teams_list.add(teams[i]);
-		}
-		Collections.shuffle(teams_list);
-
-		teams_list.toArray(teams);
-		ScheduleDivisions.scheduleAll(this);
-		printByTeam();
-	}
-
-	public Week[] constructSchedule() {
-		// construct week by week schedule.
-		for (int week = 0; week < num_weeks; week++) {
-			weeks[week] = new Week(teams.length);
-			List<Team> used = new ArrayList<Team>();
-			List<Game> games = new ArrayList<Game>();
-			for (int team1 = 0; team1 < teams.length; team1++) {
-				if (!used.contains(teams[team1].sched[week]) && !used.contains(teams[team1])) {
-					used.add(teams[team1]);
-					used.add(teams[team1].sched[week]);
-					games.add(new Game(teams[team1], teams[team1].sched[week]));
+			// based on what index they are in divisions, add them to a teams_by_div list of lists
+			for (int j = 0; j < divisions.size(); j++) {
+				if (divisions.get(j) == teams[i].divNum) {
+					if (teams_by_div.get(j) == null) {
+						teams_by_div.set(j, new ArrayList<Team>());
+					}
+					teams_by_div.get(j).add(teams[i]);
+					break;
 				}
 			}
-			Game[] games_arr = new Game[6];
-			games.toArray(games_arr);
-			weeks[week].games = games_arr;
+		}
+		for (int i = 0; i < teams_by_div.size(); i++) {
+			Collections.shuffle(teams_by_div.get(i));
 		}
 
-		List<Week> list_weeks = Arrays.asList(weeks);
-		Collections.shuffle(list_weeks);
-		list_weeks.toArray(weeks);
+		Collections.shuffle(teams_by_div);
 
-		return weeks;
+		List<Team> shuffled_teams = new ArrayList<Team>();
+
+		for (int i = 0; i < teams_by_div.size(); i++) {
+			for (int j = 0; j < teams_by_div.get(i).size(); j++) {
+				shuffled_teams.add(teams_by_div.get(i).get(j));
+			}
+		}
+		shuffled_teams.toArray(teams);
+
+		System.out.println(scheduleAll());
+		
 	}
 
-	public void printByTeam() {
-		for (int j = 0; j < teams.length; j++) {
-			if (teams[j] == null) {
-				continue;
-			}
-			System.out.println(teams[j].name);
-			System.out.println();
-			for (int i = 0; i < num_weeks; i++) {
-				if (teams[j].sched[i] == null) {
-					continue;
-				}
-				System.out.println(teams[j].sched[i].name + ": " + i);
-			}
-			System.out.println();
-			System.out.println();
-		}
-	}
-
-	public void printByWeek() {
-		if (weeks == null) {
-			throw new RuntimeException();
-		}
-		for (int i = 0; i < weeks.length; i++) {
-			if (weeks[i] == null) {
-				throw new RuntimeException();
-			}
-		}
-		for (int i = 0; i < num_weeks; i++) {
-			System.out.println("Week: " + (i + 1));
-			System.out.println();
-			for (int j = 0; j < weeks[i].games.length; j++) {
-				Game x = weeks[i].games[j];
-				System.out.println(x.team1.name + " plays vs " + x.team2.name);
-			}
-			System.out.println();
-			System.out.println();
-		}
-	}
-
-	public static boolean scheduleAll(ScheduleDivisions schedule) {
+	public boolean scheduleAll() {
 		// check completed.
-		Team[] teams = schedule.teams;
 		boolean complete = true;
 		int team = -1;
 		int week = -1;
-		for(int i = 0; i < schedule.num_weeks; i++) {
+		for(int i = 0; i < num_weeks; i++) {
 			for(int j = 0; j < teams.length; j++) {
 				if(teams[j].sched[i] == null) {
 					complete = false;
@@ -181,10 +137,10 @@ public class ScheduleDivisions {
 			if(team1 == team2) {
 				continue;
 			}
-			if(allValid(team1, team2, week, schedule)) {
+			if(validSchedule(team1, team2, week)) {
 				team1.sched[week] = team2;
 				team2.sched[week] = team1;
-				if(ScheduleDivisions.scheduleAll(schedule)) {
+				if(scheduleAll()) {
 					return true;
 				} else {
 					team1.sched[week] = null;
@@ -196,8 +152,7 @@ public class ScheduleDivisions {
 		
 		return false;
 	}
-	private static boolean allValid(Team team1, Team team2, int week, ScheduleDivisions schedule) {
-		Team[] teams = schedule.teams;
+	private boolean validSchedule(Team team1, Team team2, int week) {
 		// make sure that no team is already scheduled.
 		if(team1.sched[week] != null || team2.sched[week] != null) {
 			return false;
@@ -220,9 +175,9 @@ public class ScheduleDivisions {
 		} else {
 			// if team is out of division, make sure that they're not occurring more than they're supposed to. 
 			// make sure they haven't already played max times
-			int teams_in_div = teams.length / schedule.num_div;
+			int teams_in_div = teams.length / num_div;
 			int in_div_games = (teams_in_div - 1) * 2;
-			int out_div_games = schedule.num_weeks - in_div_games;
+			int out_div_games = num_weeks - in_div_games;
 			
 			// max is either 1 or 2. if out_div_games > out_div_teams.length, then it's 2.
 			int max = 0;
@@ -272,9 +227,6 @@ public class ScheduleDivisions {
 					amt_max_1++;
 				} 
 			}
-			if(amt_max_1 > num_with_max - 1) {
-				return false;
-			}
 			
 			int amt_max_2 = 0;
 			for (Map.Entry<String, Integer> entry : hmap_2.entrySet()) {
@@ -282,7 +234,8 @@ public class ScheduleDivisions {
 					amt_max_2++;
 				} 
 			}
-			if(amt_max_2 > num_with_max - 1) {
+			
+			if(amt_max_2 > num_with_max - 1 || amt_max_1 > num_with_max - 1) {
 				return false;
 			}
 		}
