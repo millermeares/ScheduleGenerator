@@ -1,6 +1,12 @@
 # ScheduleGenerator
 Generates schedules for sports teams with and without divisions
 
-Two known issues:
-1. leagues with odd number of players in divisions.
-2. 10 team leagues with 5 divisions. care a lot less about this one.
+Supported: 
+16 teams with 4 divisions
+12 teams with 3, 4 divisions
+10 teams with 2, 5 divisions
+8 teams with 4, 2 divisions
+
+Would like to: 
+-add arc consistency for speed.
+-explore local search as a possibility
